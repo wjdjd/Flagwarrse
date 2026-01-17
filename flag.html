@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flag Arena - Smooth FX</title>
+    <style>
+        :root {
+            --primary: #22d3ee;
+            --accent: #fbbf24;
+            --bg-glass: rgba(15, 23, 42, 0.85);
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background: url('1000089553.jpg') no-repeat center center fixed;
+            background-size: cover;
+            background-color: #C0E0FF;
+            user-select: none;
+            touch-action: none; /* Mobil qurilmalar uchun teginishni oldini olish */
+        }
+
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+        #counter { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            font-size: 18px; 
+            font-weight: 800; 
+            color: white; 
+            background: var(--bg-glass);
+            padding: 10px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #winner-box {
+            display: none; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.98); 
+            padding: 30px; 
+            border-radius: 25px; 
+            border: 6px solid var(--accent);
+            text-align: center; 
+            box-shadow: 0 0 50px rgba(34, 211, 238, 0.5); 
+            z-index: 100; 
+            pointer-events: auto;
+            width: 85%; 
+            max-width: 300px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        #winner-flag { 
+            width: 140px; 
+            height: 90px; 
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid #e2e8f0; 
+            margin: 15px 0;
+        }
+
+        #winner-name { 
+            font-size: 26px; 
+            font-weight: 900; 
+            color: #0f172a; 
+            display: block;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        #btn-container {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            pointer-events: auto;
+        }
+
+        .btn-main {
+            font-size: 22px; 
+            padding: 15px 40px; 
+            background: var(--primary); 
+            color: #020617;
+            border: none; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            font-weight: 800;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+            text-transform: uppercase;
+            transition: transform 0.2s;
+        }
+
+        .btn-main:active { transform: scale(0.95); }
+
+        .btn-icon {
+            width: 60px; 
+            height: 60px; 
+            background: var(--bg-glass); 
+            color: white;
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 22px;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .retry { 
+            padding: 12px 25px; 
+            background: #0f172a; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: 700;
+            text-transform: uppercase;
+            width: 100%;
+        }
+
+        #confetti-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 90;
+        }
+
+        /* Mobil optimizatsiya: Ekran o'lchamiga moslash */
+        @media (max-width: 768px) {
+            #counter {
+                font-size: 16px;
+                padding: 8px 16px;
+            }
+
+            .btn-main {
+                font-size: 18px;
+                padding: 12px 30px;
+            }
+
+            .btn-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            #winner-box {
+                padding: 20px;
+            }
+
+            #winner-name {
+                font-size: 22px;
+            }
+
+            #winner-flag {
+                width: 120px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div id="ui">
+    <div id="counter">Alive: 0</div>
+    <div id="winner-box">
+        <h3 style="margin:0; color: var(--accent); font-size: 16px;">CHAMPION!</h3>
+        <img id="winner-flag" src="">
+        <span id="winner-name"></span>
+        <button class="retry" onclick="restartGame()">PLAY AGAIN</button>
+    </div>
+</div>
+
+<div id="btn-container">
+    <button id="start-btn" class="btn-main" onclick="startGame()">START GAME</button>
+    <button id="mute-btn" class="btn-icon" onclick="toggleMute()">🔊</button>
+</div>
+
+<audio id="bgMusic1" src="Raise Your Game Flag.mp3" loop preload="auto"></audio>
+<audio id="bgMusic2" src="Buy My Time.mp3" loop preload="auto"></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<script>
+    const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
+    
+    // --- OPTIMALLASHTIRILGAN OVOZ TIZIMI ---
+    let audioCtx = null;
+    let isMuted = false;
+    let collisionBuffer = null;
+    let lastSoundTime = 0; // Ovozlar orasidagi vaqtni cheklash uchun
+    let bgMusic1 = document.getElementById('bgMusic1');
+    let bgMusic2 = document.getElementById('bgMusic2');
+    let currentBgMusic = bgMusic1; // Start with first music
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            createCollisionBuffer(); // Ovozni oldindan tayyorlash
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // "Tomchi" ovozini xotirada yaratish (Buffer) - CPU ni tejash uchun
+    function createCollisionBuffer() {
+        const duration = 0.15;
+        const sampleRate = audioCtx.sampleRate;
+        const bufferSize = sampleRate * duration;
+        const buffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+            const t = i / sampleRate;
+            // Sinus to'lqini + chastota pasayishi (Pishillash effekti)
+            const frequency = 400 - (t / duration) * 300; 
+            const volume = 1 - (t / duration); // So'nish effekti
+            data[i] = Math.sin(2 * Math.PI * frequency * t) * volume;
+        }
+        collisionBuffer = buffer;
+    }
+
+    function playCollisionSound(impact) {
+        if (!audioCtx || !collisionBuffer) return;
+        
+        const now = Date.now();
+        // Har 40ms da faqat bitta ovoz (qotishni oldini oladi)
+        if (now - lastSoundTime < 40) return;
+        
+        // Kuchsiz urilishlarni o'tkazib yuborish
+        if (impact < 1.5) return; 
+
+        lastSoundTime = now;
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = collisionBuffer;
+        
+        const gainNode = audioCtx.createGain();
+        // Ovoz balandligini zarba kuchiga moslash (maksimal 0.3)
+        const volume = Math.min(impact / 25, 0.3);
+        gainNode.gain.value = volume;
+
+        // Pitch (tonallik)ni ozgina o'zgartirish (tabiiylik uchun)
+        source.playbackRate.value = 0.8 + Math.random() * 0.4;
+
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        source.start();
+    }
+
+    // Arfa ovozi (G'alaba uchun)
+    function playVictorySound() {
+        if (!audioCtx) return;
+        
+        const now = audioCtx.currentTime;
+        const notes = [261.63, 329.63, 392.00, 493.88, 523.25, 659.25]; // C Maj 7
+
+        notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.12);
+            
+            gain.gain.setValueAtTime(0, now + i * 0.12);
+            gain.gain.linearRampToValueAtTime(0.2, now + i * 0.12 + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 1.2);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(now + i * 0.12);
+            osc.stop(now + i * 0.12 + 1.2);
+        });
+    }
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊";
+        if (isMuted) {
+            bgMusic1.pause();
+            bgMusic2.pause();
+        } else {
+            currentBgMusic.play();
+        }
+    }
+
+    function playBackgroundMusic() {
+        if (!isMuted) {
+            currentBgMusic.play();
+        }
+    }
+
+    function switchBackgroundMusic() {
+        if (currentBgMusic === bgMusic1) {
+            currentBgMusic = bgMusic2;
+        } else {
+            currentBgMusic = bgMusic1;
+        }
+    }
+
+    function stopAllAudio() {
+        bgMusic1.pause();
+        bgMusic2.pause();
+        bgMusic1.currentTime = 0;
+        bgMusic2.currentTime = 0;
+        if (audioCtx) {
+            audioCtx.suspend();
+        }
+    }
+
+    // --- CONFETTI ---
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const ctx = confettiCanvas.getContext('2d');
+    let particles = [];
+
+    function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * confettiCanvas.width;
+            this.y = -20;
+            this.size = Math.random() * 8 + 4;
+            this.speed = Math.random() * 4 + 2;
+            this.angle = Math.random() * 360;
+            this.spin = Math.random() * 8 - 4;
+            this.color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+        }
+        update() { this.y += this.speed; this.angle += this.spin; }
+        draw() {
+            ctx.save(); ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle * Math.PI / 180);
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+            ctx.restore();
+        }
+    }
+
+    function animateConfetti() {
+        if (!isPlaying && document.getElementById('winner-box').style.display === 'block') {
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateConfetti);
+        }
+    }
+
+    function startConfetti() {
+        particles = [];
+        for (let i = 0; i < 180; i++) particles.push(new Particle());
+        animateConfetti();
+    }
+
+    // --- GAME LOGIC ---
+    const CONFIG = {
+        ringRadius: Math.min(window.innerWidth / 2 - 50, 155), // Mobil uchun radiusni kichraytirish       
+        ballSize: window.innerWidth < 768 ? 6 : 7.5, // Kichik ekranlarda bayroqlarni kichraytirish           
+        targetSpeed: 3.5,      
+        rotationSpeed: 0.012,  
+        gravityValue: 1.0      
+    };
+
+    const countries = [
+        {name:"Uzbekistan",code:"uz"},{name:"USA",code:"us"},{name:"UK",code:"gb"},{name:"Russia",code:"ru"},
+        {name:"China",code:"cn"},{name:"Turkey",code:"tr"},{name:"Germany",code:"de"},{name:"Japan",code:"jp"},
+        {name:"France",code:"fr"},{name:"South Korea",code:"kr"},{name:"North Korea",code:"kp"},{name:"India",code:"in"},
+        {name:"Brazil",code:"br"},{name:"Kazakhstan",code:"kz"},{name:"Kyrgyzstan",code:"kg"},{name:"Tajikistan",code:"tj"},
+        {name:"Turkmenistan",code:"tm"},{name:"Azerbaijan",code:"az"},{name:"Afghanistan",code:"af"},{name:"Iran",code:"ir"},
+        {name:"Pakistan",code:"pk"},{name:"Saudi Arabia",code:"sa"},{name:"UAE",code:"ae"},{name:"Egypt",code:"eg"},
+        {name:"Spain",code:"es"},{name:"Italy",code:"it"},{name:"Portugal",code:"pt"},{name:"Argentina",code:"ar"},
+        {name:"Canada",code:"ca"},{name:"Mexico",code:"mx"},{name:"Australia",code:"au"},{name:"Ukraine",code:"ua"},
+        {name:"Poland",code:"pl"},{name:"Netherlands",code:"nl"},{name:"Sweden",code:"se"},{name:"Norway",code:"no"},
+        {name:"Switzerland",code:"ch"},{name:"Belgium",code:"be"},{name:"Austria",code:"at"},{name:"Greece",code:"gr"},
+        {name:"Armenia",code:"am"},{name:"Georgia",code:"ge"},{name:"Iraq",code:"iq"},{name:"Israel",code:"il"},
+        {name:"Indonesia",code:"id"},{name:"Malaysia",code:"my"},{name:"Thailand",code:"th"},{name:"Vietnam",code:"vn"},
+        {name:"Philippines",code:"ph"},{name:"South Africa",code:"za"},{name:"Nigeria",code:"ng"},{name:"Morocco",code:"ma"},
+        {name:"Algeria",code:"dz"},{name:"Chile",code:"cl"},{name:"Colombia",code:"co"},{name:"Peru",code:"pe"},
+        {name:"Uruguay",code:"uy"},{name:"Hungary",code:"hu"},{name:"Czech Republic",code:"cz"},{name:"Romania",code:"ro"},
+        {name:"Bulgaria",code:"bg"},{name:"Croatia",code:"hr"},{name:"Serbia",code:"rs"},{name:"Slovakia",code:"sk"},
+        {name:"Finland",code:"fi"},{name:"Denmark",code:"dk"},{name:"Ireland",code:"ie"},{name:"New Zealand",code:"nz"},
+        {name:"Singapore",code:"sg"},{name:"Qatar",code:"qa"},{name:"Kuwait",code:"kw"},{name:"Oman",code:"om"},
+        {name:"Jordan",code:"jo"},{name:"Lebanon",code:"lb"},{name:"Syria",code:"sy"},{name:"Palestine",code:"ps"},
+        {name:"Yemen",code:"ye"},{name:"Libya",code:"ly"},{name:"Tunisia",code:"tn"},{name:"Ethiopia",code:"et"},
+        {name:"Kenya",code:"ke"},{name:"Ghana",code:"gh"},{name:"Cuba",code:"cu"},{name:"Jamaica",code:"jm"},
+        {name:"Iceland",code:"is"},{name:"Mongolia",code:"mn"},{name:"Nepal",code:"np"},{name:"Sri Lanka",code:"lk"},
+        {name:"Bangladesh",code:"bd"},{name:"Albania",code:"al"},{name:"Andorra",code:"ad"},{name:"Angola",code:"ao"},
+        {name:"Antigua",code:"ag"},{name:"Bahamas",code:"bs"},{name:"Bahrain",code:"bh"},{name:"Barbados",code:"bb"},
+        {name:"Belarus",code:"by"},{name:"Belize",code:"bz"},{name:"Benin",code:"bj"},{name:"Bhutan",code:"bt"},
+        {name:"Bolivia",code:"bo"},{name:"Bosnia",code:"ba"},{name:"Botswana",code:"bw"},{name:"Brunei",code:"bn"},
+        {name:"Burkina Faso",code:"bf"},{name:"Burundi",code:"bi"},{name:"Cabo Verde",code:"cv"},{name:"Cambodia",code:"kh"},
+        {name:"Cameroon",code:"cm"},{name:"CAR",code:"cf"},{name:"Chad",code:"td"},{name:"Comoros",code:"km"},
+        {name:"Congo",code:"cg"},{name:"DR Congo",code:"cd"},{name:"Costa Rica",code:"cr"},{name:"Ivory Coast",code:"ci"},
+        {name:"Cyprus",code:"cy"},{name:"Djibouti",code:"dj"},{name:"Dominica",code:"dm"},{name:"Dominican Rep",code:"do"},
+        {name:"Ecuador",code:"ec"},{name:"El Salvador",code:"sv"},{name:"Equatorial Guinea",code:"gq"},{name:"Eritrea",code:"er"},
+        {name:"Estonia",code:"ee"},{name:"Eswatini",code:"sz"},{name:"Fiji",code:"fj"},{name:"Gabon",code:"ga"},
+        {name:"Gambia",code:"gm"},{name:"Grenada",code:"gd"},{name:"Guatemala",code:"gt"},{name:"Guinea",code:"gn"},
+        {name:"Guinea-Bissau",code:"gw"},{name:"Guyana",code:"gy"},{name:"Haiti",code:"ht"},{name:"Honduras",code:"hn"},
+        {name:"Kiribati",code:"ki"},{name:"Laos",code:"la"},{name:"Latvia",code:"lv"},{name:"Lesotho",code:"ls"},
+        {name:"Liberia",code:"lr"},{name:"Lithuania",code:"lt"},{name:"Luxembourg",code:"lu"},{name:"Madagascar",code:"mg"},
+        {name:"Malawi",code:"mw"},{name:"Maldives",code:"mv"},{name:"Mali",code:"ml"},{name:"Malta",code:"mt"},
+        {name:"Marshall Islands",code:"mh"},{name:"Mauritania",code:"mr"},{name:"Mauritius",code:"mu"},{name:"Micronesia",code:"fm"},
+        {name:"Moldova",code:"md"},{name:"Monaco",code:"mc"},{name:"Montenegro",code:"me"},{name:"Mozambique",code:"mz"},
+        {name:"Myanmar",code:"mm"},{name:"Namibia",code:"na"},{name:"Nauru",code:"nr"},{name:"Nicaragua",code:"ni"},
+        {name:"Niger",code:"ne"},{name:"North Macedonia",code:"mk"},{name:"Palau",code:"pw"},{name:"Panama",code:"pa"},
+        {name:"PNG",code:"pg"},{name:"Paraguay",code:"py"},{name:"Rwanda",code:"rw"},{name:"Saint Kitts",code:"kn"},
+        {name:"Saint Lucia",code:"lc"},{name:"Saint Vincent",code:"vc"},{name:"Samoa",code:"ws"},{name:"San Marino",code:"sm"},
+        {name:"Sao Tome",code:"st"},{name:"Senegal",code:"sn"},{name:"Seychelles",code:"sc"},{name:"Sierra Leone",code:"sl"},
+        {name:"Slovenia",code:"si"},{name:"Solomon Islands",code:"sb"},{name:"Somalia",code:"so"},{name:"South Sudan",code:"ss"},
+        {name:"Sudan",code:"sd"},{name:"Suriname",code:"sr"},{name:"Taiwan",code:"tw"},{name:"Tanzania",code:"tz"},
+        {name:"Timor-Leste",code:"tl"},{name:"Togo",code:"tg"},{name:"Tonga",code:"to"},{name:"Trinidad",code:"tt"},
+        {name:"Tuvalu",code:"tv"},{name:"Uganda",code:"ug"},{name:"Vanuatu",code:"vu"},{name:"Vatican",code:"va"},
+        {name:"Venezuela",code:"ve"},{name:"Zambia",code:"zm"},{name:"Zimbabwe",code:"zw"}
+    ];
+
+    let engine, render, runner, wheel, balls = [], isPlaying = false;
+
+    function startGame() {
+        initAudio(); // Ovozni yoqish
+        document.getElementById('btn-container').style.display = 'none';
+        init();
+        isPlaying = true;
+        playBackgroundMusic(); // Start background music when game starts
+    }
+
+    function restartGame() {
+        initAudio();
+        document.getElementById('winner-box').style.display = 'none';
+        particles = [];
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        
+        if (runner) Runner.stop(runner);
+        if (render) { Render.stop(render); render.canvas.remove(); }
+        if (engine) { Composite.clear(engine.world); Engine.clear(engine); }
+        balls = [];
+        init();
+        isPlaying = true;
+    }
+
+    function init() {
+        engine = Engine.create();
+        engine.gravity.y = CONFIG.gravityValue;
+
+        // Collision Event (Optimallashgan)
+        Events.on(engine, 'collisionStart', (event) => {
+            const pairs = event.pairs;
+            // Faqat bitta juftlikni tekshirish kifoya (yuklamani kamaytirish uchun)
+            // Yoki loop qilsak ham, audio funksiya o'zini o'zi cheklaydi
+            for (let i = 0; i < pairs.length; i++) {
+                const pair = pairs[i];
+                const speedSum = (pair.bodyA.speed + pair.bodyB.speed);
+                // Faqat sezilarli urilishlarda ovoz chaqiramiz
+                if (speedSum > 1.5) {
+                    playCollisionSound(speedSum);
+                }
+            }
+        });
+
+        render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: 'transparent' }
+        });
+
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2 - 40;
+
+        // Catchers for losers
+        const floor = Bodies.rectangle(cx, window.innerHeight + 25, window.innerWidth * 2, 50, { 
+            isStatic: true, friction: 0.5, render: { visible: false } 
+        });
+        const wallL = Bodies.rectangle(-20, window.innerHeight / 2, 40, window.innerHeight, { isStatic: true, render: { visible: false } });
+        const wallR = Bodies.rectangle(window.innerWidth + 20, window.innerHeight / 2, 40, window.innerHeight, { isStatic: true, render: { visible: false } });
+        Composite.add(engine.world, [floor, wallL, wallR]);
+
+        // Ring
+        wheel = Composite.create();
+        const segments = 80; 
+        const gapSize = 12;
+        for (let i = 0; i < segments - gapSize; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const wall = Bodies.rectangle(
+                cx + Math.cos(angle) * CONFIG.ringRadius,
+                cy + Math.sin(angle) * CONFIG.ringRadius,
+                22, 6, {
+                    isStatic: true,
+                    angle: angle + Math.PI / 2,
+                    render: { fillStyle: '#22d3ee' },
+                    restitution: 1.0
+                }
+            );
+            Composite.add(wheel, wall);
+        }
+        Composite.add(engine.world, wheel);
+
+        // Nations (Mobil uchun sonini kamaytirish mumkin, ammo hozircha o'zgartirmayman)
+        countries.forEach(c => {
+            const ball = Bodies.circle(cx + (Math.random()-0.5)* (window.innerWidth < 768 ? 100 : 130), cy + (Math.random()-0.5)* (window.innerWidth < 768 ? 100 : 130), CONFIG.ballSize, {
+                restitution: 0.95, 
+                friction: 0, 
+                frictionAir: 0, 
+                inertia: Infinity,
+                render: {
+                    sprite: {
+                        texture: `https://flagcdn.com/w80/${c.code}.png`,
+                        xScale: (CONFIG.ballSize * 2.5) / 80,
+                        yScale: (CONFIG.ballSize * 2.5) / 60
+                    }
+                },
+                label: c.name
+            });
+            ball.countryCode = c.code;
+            ball.isActive = true;
+            const angle = Math.random() * Math.PI * 2;
+            Body.setVelocity(ball, { x: Math.cos(angle) * CONFIG.targetSpeed, y: Math.sin(angle) * CONFIG.targetSpeed });
+            balls.push(ball);
+        });
+        Composite.add(engine.world, balls);
+
+        Events.on(engine, 'beforeUpdate', () => {
+            if (!isPlaying) return;
+            Composite.rotate(wheel, CONFIG.rotationSpeed, { x: cx, y: cy });
+
+            balls.forEach(ball => {
+                if (ball.isActive) {
+                    Body.applyForce(ball, ball.position, { x: 0, y: -engine.gravity.y * engine.gravity.scale * ball.mass });
+                    
+                    const vel = ball.velocity;
+                    const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+                    if (speed > 0) {
+                        const scale = CONFIG.targetSpeed / speed;
+                        Body.setVelocity(ball, { x: vel.x * scale, y: vel.y * scale });
+                    }
+
+                    const dist = Vector.magnitude(Vector.sub(ball.position, {x: cx, y: cy}));
+                    if (dist > CONFIG.ringRadius + 22) {
+                        ball.isActive = false;
+                        ball.frictionAir = 0.02; 
+                        ball.restitution = 0.5;
+                        const dir = Vector.normalise(Vector.sub(ball.position, {x: cx, y: cy}));
+                        Body.applyForce(ball, ball.position, Vector.mult(dir, 0.002));
+                    }
+                }
+            });
+
+            const alive = balls.filter(b => b.isActive);
+            document.getElementById('counter').innerText = "Alive: " + alive.length;
+
+            if (alive.length === 1 && isPlaying) {
+                showWinner(alive[0]);
+            }
+        });
+
+        Render.run(render);
+        runner = Runner.create();
+        Runner.run(runner, engine);
+    }
+
+    function showWinner(b) {
+        isPlaying = false;
+        document.getElementById('winner-box').style.display = 'block';
+        document.getElementById('winner-name').innerText = b.label;
+        document.getElementById('winner-flag').src = `https://flagcdn.com/w160/${b.countryCode}.png`;
+        playVictorySound();
+        startConfetti();
+    }
+
+    // Handle switching music when one ends
+    bgMusic1.addEventListener('ended', () => {
+        switchBackgroundMusic();
+        playBackgroundMusic();
+    });
+
+    bgMusic2.addEventListener('ended', () => {
+        switchBackgroundMusic();
+        playBackgroundMusic();
+    });
+
+    // Sahifadan chiqishda musiqani to'xtatish
+    window.addEventListener('beforeunload', stopAllAudio);
+
+    // Mobil uchun ekran orientatsiyasini kuzatish va o'lchamni yangilash
+    window.addEventListener('orientationchange', () => {
+        resizeConfetti();
+        if (render) {
+            render.options.width = window.innerWidth;
+            render.options.height = window.innerHeight;
+            render.bounds.max.x = window.innerWidth;
+            render.bounds.max.y = window.innerHeight;
+        }
+    });
+</script>
+</body>
+</html>
